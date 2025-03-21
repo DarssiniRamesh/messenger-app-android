@@ -243,6 +243,17 @@ public class AppConfig {
         }
     }
 
-
+    public boolean getBooleanValue(String key, boolean defaultVal) {
+        try {
+            synchronized (mSharedPref) {
+                if (mSharedPref.contains(key))
+                    return mSharedPref.getBoolean(key, defaultVal);
+                return defaultVal;
+            }
+        } catch (Exception e) {
+            Log.d(TAG, "Unable to get boolean value in RMS:" + e.getMessage());
+            return defaultVal;
+        }
+    }
 };
 
