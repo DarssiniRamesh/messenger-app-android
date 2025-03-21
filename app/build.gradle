@@ -1,6 +1,6 @@
-
 apply plugin: 'com.android.application'
 apply from: "https://cdn.mesibo.com/android/mesibo.gradle"
+apply plugin: 'jacoco'
 
 
 ext {
@@ -39,13 +39,20 @@ android {
             minifyEnabled false
             debuggable true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            testCoverageEnabled true
         }
 
         debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            testCoverageEnabled true
         }
 
+    }
+    
+    // JaCoCo configuration
+    jacoco {
+        toolVersion = "0.8.7"
     }
 }
 
@@ -94,4 +101,176 @@ dependencies {
 
 // this line needs to be at bottom else it gives error of version conflict
 apply plugin: 'com.google.gms.google-services'
+
+// JaCoCo test report tasks
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
+}
+
+// Task to generate full coverage report
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports for Debug build"
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        csv.enabled = false
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.from = files([mainSrc])
+    classDirectories.from = files([debugTree])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+}
+
+// Task to generate coverage report for specific components
+task jacocoCoreComponentsReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports for core components"
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        csv.enabled = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Include only the core components we want to analyze
+    def coreComponents = [
+        '**/NotifyUser.class',
+        '**/UIManager.class',
+        '**/MesiboFileTransferHelper.class',
+        '**/MainApplication.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include coreComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+}
+
+// Task to generate detailed metrics for core components
+task generateCoreComponentsCoverageMetrics(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate detailed test coverage metrics for core components"
+
+    reports {
+        xml.enabled = true
+        html {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/coreComponentsMetrics")
+        }
+        csv {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/coreComponentsMetrics/core-components-metrics.csv")
+        }
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Specifically target the core components
+    def coreComponents = [
+        '**/NotifyUser.class',
+        '**/UIManager.class',
+        '**/MesiboFileTransferHelper.class',
+        '**/MainApplication.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include coreComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+    
+    doLast {
+        println "Core Components Coverage Report generated at: ${reports.html.destination}"
+        
+        // Generate a summary of the metrics
+        def metricsFile = new File("${buildDir}/reports/jacoco/coreComponentsMetrics/metrics-summary.txt")
+        metricsFile.text = """
+        |==========================================================
+        |     CORE COMPONENTS TEST COVERAGE METRICS SUMMARY
+        |==========================================================
+        | Report generated on: ${new Date()}
+        |
+        | Components analyzed:
+        | - NotifyUser
+        | - UIManager
+        | - MesiboFileTransferHelper
+        | - MainApplication
+        |
+        | Metrics included:
+        | - Line coverage
+        | - Branch coverage
+        | - Method coverage
+        | - Class coverage
+        |
+        | Full HTML report available at:
+        | ${reports.html.destination}/index.html
+        |
+        | CSV data available at:
+        | ${reports.csv.destination}
+        |==========================================================
+        """.stripMargin()
+        
+        println "Coverage metrics summary written to: ${metricsFile.absolutePath}"
+        
+        // Run the detailed coverage report test
+        tasks.create(name: 'runDetailedCoverageReport', type: Test) {
+            include '**/DetailedCoverageReport.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the component structure analyzer
+        tasks.create(name: 'runComponentStructureAnalyzer', type: Test) {
+            include '**/CoverageMetricsAnalyzer.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the JSON metrics generator
+        tasks.create(name: 'runJsonMetricsGenerator', type: Test) {
+            include '**/CoverageMetricsJsonGenerator.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+    }
+}
+
+// Task to run all coverage-related tasks
+task generateAllCoverageReports(dependsOn: ['generateCoreComponentsCoverageMetrics']) {
+    group = "Reporting"
+    description = "Generate all coverage reports including detailed metrics and analysis"
+    
+    doLast {
+        println "All coverage reports generated successfully"
+        println "Reports available at: ${buildDir}/reports/jacoco/"
+    }
+}
 

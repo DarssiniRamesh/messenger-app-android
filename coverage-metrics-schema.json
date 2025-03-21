@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coverage Metrics",
+  "description": "Schema for coverage metrics JSON file",
+  "type": "object",
+  "required": ["timestamp", "project", "components", "summary"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "The timestamp when the metrics were generated",
+      "format": "date-time"
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project"
+    },
+    "components": {
+      "type": "array",
+      "description": "List of components with their coverage metrics",
+      "items": {
+        "type": "object",
+        "required": ["name", "package", "metrics"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the component"
+          },
+          "package": {
+            "type": "string",
+            "description": "The package name of the component"
+          },
+          "metrics": {
+            "type": "object",
+            "required": ["line_coverage", "branch_coverage", "method_coverage", "class_coverage"],
+            "properties": {
+              "line_coverage": {
+                "$ref": "#/definitions/metric"
+              },
+              "branch_coverage": {
+                "$ref": "#/definitions/metric"
+              },
+              "method_coverage": {
+                "$ref": "#/definitions/metric"
+              },
+              "class_coverage": {
+                "$ref": "#/definitions/metric"
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary of coverage metrics across all components",
+      "required": ["line_coverage", "branch_coverage", "method_coverage", "class_coverage"],
+      "properties": {
+        "line_coverage": {
+          "$ref": "#/definitions/metric"
+        },
+        "branch_coverage": {
+          "$ref": "#/definitions/metric"
+        },
+        "method_coverage": {
+          "$ref": "#/definitions/metric"
+        },
+        "class_coverage": {
+          "$ref": "#/definitions/metric"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "metric": {
+      "type": "object",
+      "description": "Coverage metric details",
+      "required": ["covered", "missed", "total", "percentage"],
+      "properties": {
+        "covered": {
+          "type": "integer",
+          "description": "Number of covered items"
+        },
+        "missed": {
+          "type": "integer",
+          "description": "Number of missed items"
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total number of items"
+        },
+        "percentage": {
+          "type": "number",
+          "description": "Percentage of covered items"
+        }
+      }
+    }
+  }
+}
