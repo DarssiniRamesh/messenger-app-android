@@ -263,8 +263,137 @@ task generateCoreComponentsCoverageMetrics(type: JacocoReport, dependsOn: ['test
     }
 }
 
+// Task to generate coverage report for FCM components
+task jacocoFcmComponentsReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports for FCM components"
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        csv.enabled = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Include only the FCM components we want to analyze
+    def fcmComponents = [
+        '**/fcm/MesiboGcmListenerService.class',
+        '**/fcm/MesiboRegistrationIntentService.class',
+        '**/fcm/MesiboJobIntentService.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include fcmComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+}
+
+// Task to generate detailed metrics for FCM components
+task generateFcmComponentsCoverageMetrics(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate detailed test coverage metrics for FCM components"
+
+    reports {
+        xml.enabled = true
+        html {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/fcmComponentsMetrics")
+        }
+        csv {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/fcmComponentsMetrics/fcm-components-metrics.csv")
+        }
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Specifically target the FCM components
+    def fcmComponents = [
+        '**/fcm/MesiboGcmListenerService.class',
+        '**/fcm/MesiboRegistrationIntentService.class',
+        '**/fcm/MesiboJobIntentService.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include fcmComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+    
+    doLast {
+        println "FCM Components Coverage Report generated at: ${reports.html.destination}"
+        
+        // Generate a summary of the metrics
+        def metricsFile = new File("${buildDir}/reports/jacoco/fcmComponentsMetrics/fcm-metrics-summary.txt")
+        metricsFile.text = """
+        |==========================================================
+        |     FCM COMPONENTS TEST COVERAGE METRICS SUMMARY
+        |==========================================================
+        | Report generated on: ${new Date()}
+        |
+        | Components analyzed:
+        | - MesiboGcmListenerService
+        | - MesiboRegistrationIntentService
+        | - MesiboJobIntentService
+        |
+        | Metrics included:
+        | - Line coverage
+        | - Branch coverage
+        | - Method coverage
+        | - Class coverage
+        |
+        | Full HTML report available at:
+        | ${reports.html.destination}/index.html
+        |
+        | CSV data available at:
+        | ${reports.csv.destination}
+        |==========================================================
+        """.stripMargin()
+        
+        println "Coverage metrics summary written to: ${metricsFile.absolutePath}"
+        
+        // Run the detailed coverage report test
+        tasks.create(name: 'runFcmDetailedCoverageReport', type: Test) {
+            include '**/fcm/FcmDetailedCoverageReport.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the component structure analyzer
+        tasks.create(name: 'runFcmComponentStructureAnalyzer', type: Test) {
+            include '**/fcm/FcmCoverageMetricsAnalyzer.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the JSON metrics generator
+        tasks.create(name: 'runFcmJsonMetricsGenerator', type: Test) {
+            include '**/fcm/FcmCoverageMetricsJsonGenerator.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+    }
+}
+
 // Task to run all coverage-related tasks
-task generateAllCoverageReports(dependsOn: ['generateCoreComponentsCoverageMetrics']) {
+task generateAllCoverageReports(dependsOn: ['generateCoreComponentsCoverageMetrics', 'generateFcmComponentsCoverageMetrics']) {
     group = "Reporting"
     description = "Generate all coverage reports including detailed metrics and analysis"
     
