@@ -1,0 +1,152 @@
+{
+  "timestamp": "2023-07-15 10:30:45",
+  "project": "messenger-app-android",
+  "components": [
+    {
+      "name": "SettingsActivity",
+      "package": "org.mesibo.messenger.AppSettings",
+      "metrics": {
+        "line_coverage": {
+          "covered": 42,
+          "missed": 8,
+          "total": 50,
+          "percentage": 84.0
+        },
+        "branch_coverage": {
+          "covered": 18,
+          "missed": 6,
+          "total": 24,
+          "percentage": 75.0
+        },
+        "method_coverage": {
+          "covered": 7,
+          "missed": 0,
+          "total": 7,
+          "percentage": 100.0
+        },
+        "class_coverage": {
+          "covered": 1,
+          "missed": 0,
+          "total": 1,
+          "percentage": 100.0
+        }
+      }
+    },
+    {
+      "name": "BasicSettingsFragment",
+      "package": "org.mesibo.messenger.AppSettings",
+      "metrics": {
+        "line_coverage": {
+          "covered": 32,
+          "missed": 3,
+          "total": 35,
+          "percentage": 91.4
+        },
+        "branch_coverage": {
+          "covered": 12,
+          "missed": 2,
+          "total": 14,
+          "percentage": 85.7
+        },
+        "method_coverage": {
+          "covered": 2,
+          "missed": 0,
+          "total": 2,
+          "percentage": 100.0
+        },
+        "class_coverage": {
+          "covered": 1,
+          "missed": 0,
+          "total": 1,
+          "percentage": 100.0
+        }
+      }
+    },
+    {
+      "name": "DataUsageFragment",
+      "package": "org.mesibo.messenger.AppSettings",
+      "metrics": {
+        "line_coverage": {
+          "covered": 38,
+          "missed": 7,
+          "total": 45,
+          "percentage": 84.4
+        },
+        "branch_coverage": {
+          "covered": 14,
+          "missed": 4,
+          "total": 18,
+          "percentage": 77.8
+        },
+        "method_coverage": {
+          "covered": 5,
+          "missed": 0,
+          "total": 5,
+          "percentage": 100.0
+        },
+        "class_coverage": {
+          "covered": 1,
+          "missed": 0,
+          "total": 1,
+          "percentage": 100.0
+        }
+      }
+    },
+    {
+      "name": "AboutFragment",
+      "package": "org.mesibo.messenger.AppSettings",
+      "metrics": {
+        "line_coverage": {
+          "covered": 15,
+          "missed": 2,
+          "total": 17,
+          "percentage": 88.2
+        },
+        "branch_coverage": {
+          "covered": 4,
+          "missed": 2,
+          "total": 6,
+          "percentage": 66.7
+        },
+        "method_coverage": {
+          "covered": 1,
+          "missed": 0,
+          "total": 1,
+          "percentage": 100.0
+        },
+        "class_coverage": {
+          "covered": 1,
+          "missed": 0,
+          "total": 1,
+          "percentage": 100.0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "line_coverage": {
+      "covered": 127,
+      "missed": 20,
+      "total": 147,
+      "percentage": 86.4
+    },
+    "branch_coverage": {
+      "covered": 48,
+      "missed": 14,
+      "total": 62,
+      "percentage": 77.4
+    },
+    "method_coverage": {
+      "covered": 15,
+      "missed": 0,
+      "total": 15,
+      "percentage": 100.0
+    },
+    "class_coverage": {
+      "covered": 4,
+      "missed": 0,
+      "total": 4,
+      "percentage": 100.0
+    }
+  }
+}

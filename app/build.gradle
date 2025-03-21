@@ -392,8 +392,140 @@ task generateFcmComponentsCoverageMetrics(type: JacocoReport, dependsOn: ['testD
     }
 }
 
+// Task to generate coverage report for Settings components
+task jacocoSettingsComponentsReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports for Settings components"
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+        csv.enabled = true
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Include only the Settings components we want to analyze
+    def settingsComponents = [
+        '**/AppSettings/SettingsActivity.class',
+        '**/AppSettings/BasicSettingsFragment.class',
+        '**/AppSettings/DataUsageFragment.class',
+        '**/AppSettings/AboutFragment.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include settingsComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+}
+
+// Task to generate detailed metrics for Settings components
+task generateSettingsComponentsCoverageMetrics(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+    group = "Reporting"
+    description = "Generate detailed test coverage metrics for Settings components"
+
+    reports {
+        xml.enabled = true
+        html {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/settingsComponentsMetrics")
+        }
+        csv {
+            enabled = true
+            destination file("${buildDir}/reports/jacoco/settingsComponentsMetrics/settings-components-metrics.csv")
+        }
+    }
+
+    def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+    def debugTree = fileTree(dir: "${buildDir}/intermediates/javac/debug", excludes: fileFilter)
+    def mainSrc = "${project.projectDir}/src/main/java"
+
+    // Specifically target the Settings components
+    def settingsComponents = [
+        '**/AppSettings/SettingsActivity.class',
+        '**/AppSettings/BasicSettingsFragment.class',
+        '**/AppSettings/DataUsageFragment.class',
+        '**/AppSettings/AboutFragment.class'
+    ]
+    
+    classDirectories.from = files([debugTree.matching {
+        include settingsComponents
+    }])
+    
+    sourceDirectories.from = files([mainSrc])
+    executionData.from = fileTree(dir: "$buildDir", includes: [
+            "jacoco/testDebugUnitTest.exec",
+            "outputs/code-coverage/connected/*coverage.ec"
+    ])
+    
+    doLast {
+        println "Settings Components Coverage Report generated at: ${reports.html.destination}"
+        
+        // Generate a summary of the metrics
+        def metricsFile = new File("${buildDir}/reports/jacoco/settingsComponentsMetrics/settings-metrics-summary.txt")
+        metricsFile.text = """
+        |==========================================================
+        |     SETTINGS COMPONENTS TEST COVERAGE METRICS SUMMARY
+        |==========================================================
+        | Report generated on: ${new Date()}
+        |
+        | Components analyzed:
+        | - SettingsActivity
+        | - BasicSettingsFragment
+        | - DataUsageFragment
+        | - AboutFragment
+        |
+        | Metrics included:
+        | - Line coverage
+        | - Branch coverage
+        | - Method coverage
+        | - Class coverage
+        |
+        | Full HTML report available at:
+        | ${reports.html.destination}/index.html
+        |
+        | CSV data available at:
+        | ${reports.csv.destination}
+        |==========================================================
+        """.stripMargin()
+        
+        println "Coverage metrics summary written to: ${metricsFile.absolutePath}"
+        
+        // Run the Settings coverage metrics generators
+        tasks.create(name: 'runSettingsCoverageMetricsJsonGenerator', type: Test) {
+            include '**/AppSettings/SettingsCoverageMetricsJsonGenerator.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the detailed coverage report
+        tasks.create(name: 'runSettingsDetailedCoverageReport', type: Test) {
+            include '**/AppSettings/SettingsDetailedCoverageReport.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+        
+        // Run the component structure analyzer
+        tasks.create(name: 'runSettingsCoverageMetricsAnalyzer', type: Test) {
+            include '**/AppSettings/SettingsCoverageMetricsAnalyzer.class'
+            testLogging {
+                events "passed", "skipped", "failed"
+            }
+        }.execute()
+    }
+}
+
 // Task to run all coverage-related tasks
-task generateAllCoverageReports(dependsOn: ['generateCoreComponentsCoverageMetrics', 'generateFcmComponentsCoverageMetrics']) {
+task generateAllCoverageReports(dependsOn: ['generateCoreComponentsCoverageMetrics', 'generateFcmComponentsCoverageMetrics', 'generateSettingsComponentsCoverageMetrics']) {
     group = "Reporting"
     description = "Generate all coverage reports including detailed metrics and analysis"
     
