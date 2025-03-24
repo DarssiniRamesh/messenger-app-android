@@ -51,9 +51,7 @@ android {
     }
     
     // JaCoCo configuration
-    jacoco {
-        toolVersion = "0.8.7"
-    }
+    // Removed toolVersion as it's not supported in the current Android Gradle plugin
 }
 
 dependencies {
