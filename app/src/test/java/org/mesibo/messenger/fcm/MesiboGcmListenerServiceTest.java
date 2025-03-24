@@ -11,7 +11,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mesibo.messenger.BaseUnitTest;
+import org.mesibo.messenger.DefaultTestDependencyProvider;
 import org.mesibo.messenger.MainApplication;
+import org.mesibo.messenger.TestDependencyProvider;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -38,6 +40,24 @@ import static org.mockito.Mockito.when;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28)
 public class MesiboGcmListenerServiceTest extends BaseUnitTest {
+    
+    // Custom dependency provider for MesiboGcmListenerServiceTest
+    private class GcmListenerServiceTestDependencyProvider extends DefaultTestDependencyProvider {
+        @Override
+        public void sendMessageToGcmListener(boolean inService) {
+            // This will be mocked in the tests using MockedStatic
+        }
+        
+        @Override
+        public void enqueueJobIntentServiceWork(Context context, Intent intent) {
+            // This will be mocked in the tests using MockedStatic
+        }
+    }
+    
+    @Override
+    protected TestDependencyProvider createDependencyProvider() {
+        return new GcmListenerServiceTestDependencyProvider();
+    }
 
     @Mock
     private RemoteMessage mockRemoteMessage;

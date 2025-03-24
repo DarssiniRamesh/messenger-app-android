@@ -11,7 +11,9 @@ import android.widget.TextView;
 import org.junit.Test;
 import org.mesibo.messenger.BaseUnitTest;
 import org.mesibo.messenger.BuildConfig;
+import org.mesibo.messenger.DefaultTestDependencyProvider;
 import org.mesibo.messenger.R;
+import org.mesibo.messenger.TestDependencyProvider;
 import org.mockito.Mock;
 import org.robolectric.Robolectric;
 
@@ -53,6 +55,20 @@ public class AboutFragmentTest extends BaseUnitTest {
     @Mock
     private Typeface mockTypeface;
     
+    // Custom dependency provider for AboutFragmentTest
+    private class AboutFragmentTestDependencyProvider extends DefaultTestDependencyProvider {
+        @Override
+        public Typeface getTypefaceFromAsset(Context context, String path) {
+            // Return the mock typeface for testing
+            return mockTypeface;
+        }
+    }
+    
+    @Override
+    protected TestDependencyProvider createDependencyProvider() {
+        return new AboutFragmentTestDependencyProvider();
+    }
+    
     @Override
     protected void setUpTest() {
         // Create the activity that will host the fragment
@@ -92,8 +108,7 @@ public class AboutFragmentTest extends BaseUnitTest {
         when(spyFragment.getActivity()).thenReturn(activity);
         when(activity.getAssets()).thenReturn(mockAssetManager);
         
-        // Mock Typeface.createFromAsset
-        mockStaticMethod(Typeface.class, "createFromAsset", mockTypeface);
+        // The mock typeface will be provided by our custom dependency provider
         
         // Execute
         View resultView = spyFragment.onCreateView(inflater, container, null);
@@ -133,8 +148,8 @@ public class AboutFragmentTest extends BaseUnitTest {
         when(spyFragment.getActivity()).thenReturn(activity);
         when(activity.getAssets()).thenReturn(mockAssetManager);
         
-        // Mock Typeface.createFromAsset to return null
-        mockStaticMethod(Typeface.class, "createFromAsset", null);
+        // Override the dependency provider to return null for typeface
+        ((AboutFragmentTestDependencyProvider) dependencyProvider).getTypefaceFromAsset = (ctx, path) -> null;
         
         // Execute
         View resultView = spyFragment.onCreateView(inflater, container, null);
@@ -145,18 +160,6 @@ public class AboutFragmentTest extends BaseUnitTest {
         verify(mockBuildDate).setText(eq("Build Time: " + BuildConfig.BUILD_TIMESTAMP));
     }
     
-    /**
-     * Helper method to mock static methods using reflection.
-     * This is a workaround since Mockito doesn't directly support mocking static methods.
-     */
-    private void mockStaticMethod(Class<?> clazz, String methodName, Object returnValue) {
-        try {
-            // This is a simplified approach and may not work for all cases
-            // For production code, consider using a library like PowerMock or Mockito's MockedStatic
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to mock static method", e);
-        }
-    }
     
     /**
      * Test the setHasOptionsMenu method call in onCreateView.

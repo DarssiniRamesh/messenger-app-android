@@ -241,15 +241,9 @@ public class SettingsActivityTest extends BaseUnitTest {
         // Execute
         activity.setRequestingFragment(mockFragment);
         
-        // Verify - we need to use reflection to access the private field
-        try {
-            java.lang.reflect.Field field = SettingsActivity.class.getDeclaredField("mRequestingFragment");
-            field.setAccessible(true);
-            Fragment storedFragment = (Fragment) field.get(activity);
-            assertEquals("Requesting fragment should be set correctly", mockFragment, storedFragment);
-        } catch (Exception e) {
-            throw new AssertionError("Could not access mRequestingFragment field", e);
-        }
+        // Use the getPrivateField method from BaseUnitTest to access the private field
+        Fragment storedFragment = (Fragment) getPrivateField(activity, "mRequestingFragment");
+        assertEquals("Requesting fragment should be set correctly", mockFragment, storedFragment);
     }
     
     /**

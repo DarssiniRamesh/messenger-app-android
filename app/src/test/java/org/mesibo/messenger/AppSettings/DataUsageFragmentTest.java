@@ -13,8 +13,10 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import org.junit.Test;
 import org.mesibo.messenger.BaseUnitTest;
+import org.mesibo.messenger.DefaultTestDependencyProvider;
 import org.mesibo.messenger.R;
 import org.mesibo.messenger.SampleAPI;
+import org.mesibo.messenger.TestDependencyProvider;
 import org.mockito.Mock;
 import org.robolectric.Robolectric;
 
@@ -68,6 +70,31 @@ public class DataUsageFragmentTest extends BaseUnitTest {
     @Mock
     private ActionBar mockActionBar;
     
+    // Custom dependency provider for DataUsageFragmentTest
+    private class DataUsageFragmentTestDependencyProvider extends DefaultTestDependencyProvider {
+        private boolean mediaAutoDownloadEnabled = true;
+        
+        @Override
+        public SharedPreferences getDefaultSharedPreferences(Context context) {
+            return mockSharedPreferences;
+        }
+        
+        @Override
+        public boolean getMediaAutoDownload() {
+            return mediaAutoDownloadEnabled;
+        }
+        
+        @Override
+        public void setMediaAutoDownload(boolean enabled) {
+            mediaAutoDownloadEnabled = enabled;
+        }
+    }
+    
+    @Override
+    protected TestDependencyProvider createDependencyProvider() {
+        return new DataUsageFragmentTestDependencyProvider();
+    }
+    
     @Override
     protected void setUpTest() {
         // Create the activity that will host the fragment
@@ -75,24 +102,6 @@ public class DataUsageFragmentTest extends BaseUnitTest {
         
         // Create the fragment
         fragment = new DataUsageFragment();
-        
-        // Mock static methods
-        mockStaticMethod(PreferenceManager.class, "getDefaultSharedPreferences", mockSharedPreferences);
-        mockStaticMethod(SampleAPI.class, "getMediaAutoDownload", true);
-        mockStaticMethod(SampleAPI.class, "setMediaAutoDownload", null);
-    }
-    
-    /**
-     * Helper method to mock static methods using reflection.
-     * This is a workaround since Mockito doesn't directly support mocking static methods.
-     */
-    private void mockStaticMethod(Class<?> clazz, String methodName, Object returnValue) {
-        try {
-            // This is a simplified approach and may not work for all cases
-            // For production code, consider using a library like PowerMock or Mockito's MockedStatic
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to mock static method", e);
-        }
     }
     
     /**
@@ -243,8 +252,8 @@ public class DataUsageFragmentTest extends BaseUnitTest {
         // Mock the necessary components
         doReturn(mockAutoSwitch).when(spyFragment).findPreference("auto");
         
-        // Mock SampleAPI.getMediaAutoDownload to return true
-        mockStaticMethod(SampleAPI.class, "getMediaAutoDownload", true);
+        // Set media auto download to true in our dependency provider
+        ((DataUsageFragmentTestDependencyProvider) dependencyProvider).mediaAutoDownloadEnabled = true;
         
         // Execute
         spyFragment.displaySwitches();
@@ -265,8 +274,8 @@ public class DataUsageFragmentTest extends BaseUnitTest {
         // Mock the necessary components
         doReturn(mockAutoSwitch).when(spyFragment).findPreference("auto");
         
-        // Mock SampleAPI.getMediaAutoDownload to return false
-        mockStaticMethod(SampleAPI.class, "getMediaAutoDownload", false);
+        // Set media auto download to false in our dependency provider
+        ((DataUsageFragmentTestDependencyProvider) dependencyProvider).mediaAutoDownloadEnabled = false;
         
         // Execute
         spyFragment.displaySwitches();

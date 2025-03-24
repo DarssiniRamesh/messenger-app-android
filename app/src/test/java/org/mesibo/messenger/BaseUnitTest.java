@@ -18,6 +18,9 @@ import org.robolectric.shadows.ShadowLog;
  * 
  * This class uses Robolectric to provide Android framework functionality in unit tests.
  * It also configures Mockito for mocking dependencies.
+ * 
+ * This class has been updated to use dependency injection instead of reflection for accessing
+ * dependencies. This makes the tests more maintainable and less brittle.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28) // Target SDK version for tests
@@ -28,10 +31,13 @@ public abstract class BaseUnitTest {
     
     // AutoCloseable for Mockito annotations
     private AutoCloseable mockitoCloseable;
+    
+    // Dependency provider for tests
+    protected TestDependencyProvider dependencyProvider;
 
     /**
      * Setup method that runs before each test.
-     * Initializes Mockito annotations, sets up logging, and provides a context.
+     * Initializes Mockito annotations, sets up logging, provides a context, and initializes the dependency provider.
      */
     @Before
     public void setUp() {
@@ -44,8 +50,21 @@ public abstract class BaseUnitTest {
         // Get application context from Robolectric
         context = ApplicationProvider.getApplicationContext();
         
+        // Initialize the dependency provider
+        dependencyProvider = createDependencyProvider();
+        
         // Call the template method for subclass-specific setup
         setUpTest();
+    }
+    
+    /**
+     * Creates a dependency provider for tests.
+     * This method can be overridden in subclasses to provide a custom dependency provider.
+     * 
+     * @return A TestDependencyProvider instance
+     */
+    protected TestDependencyProvider createDependencyProvider() {
+        return new DefaultTestDependencyProvider();
     }
 
     /**
@@ -90,6 +109,123 @@ public abstract class BaseUnitTest {
             Thread.sleep(milliseconds);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+    
+    /**
+     * Utility method to access a private field of an object.
+     * This method is provided for backward compatibility with existing tests.
+     * New tests should use dependency injection instead.
+     *
+     * @param object The object containing the field
+     * @param fieldName The name of the field
+     * @return The value of the field
+     * @throws RuntimeException If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    protected Object getPrivateField(Object object, String fieldName) {
+        try {
+            java.lang.reflect.Field field = object.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get private field", e);
+        }
+    }
+    
+    /**
+     * Utility method to set a private field of an object.
+     * This method is provided for backward compatibility with existing tests.
+     * New tests should use dependency injection instead.
+     *
+     * @param object The object containing the field
+     * @param fieldName The name of the field
+     * @param value The value to set
+     * @throws RuntimeException If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    protected void setPrivateField(Object object, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = object.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(object, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set private field", e);
+        }
+    }
+    
+    /**
+     * Utility method to set a private static field of a class.
+     * This method is provided for backward compatibility with existing tests.
+     * New tests should use dependency injection instead.
+     *
+     * @param clazz The class containing the field
+     * @param fieldName The name of the field
+     * @param value The value to set
+     * @throws RuntimeException If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    protected void setPrivateStaticField(Class<?> clazz, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            java.lang.reflect.Modifier.setModifiers(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+            field.set(null, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set private static field", e);
+        }
+    }
+    
+    /**
+     * Utility method to get a private static field of a class.
+     * This method is provided for backward compatibility with existing tests.
+     * New tests should use dependency injection instead.
+     *
+     * @param clazz The class containing the field
+     * @param fieldName The name of the field
+     * @return The value of the field
+     * @throws RuntimeException If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    protected Object getPrivateStaticField(Class<?> clazz, String fieldName) {
+        try {
+            java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return field.get(null);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get private static field", e);
+        }
+    }
+    
+    /**
+     * Utility method to invoke a private method of an object.
+     * This method is provided for backward compatibility with existing tests.
+     * New tests should use dependency injection instead.
+     *
+     * @param object The object containing the method
+     * @param methodName The name of the method
+     * @param args The arguments to pass to the method
+     * @return The result of the method invocation
+     * @throws RuntimeException If the method cannot be accessed or invoked
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    protected Object invokePrivateMethod(Object object, String methodName, Object... args) {
+        try {
+            Class<?>[] argTypes = new Class<?>[args.length];
+            for (int i = 0; i < args.length; i++) {
+                argTypes[i] = args[i].getClass();
+            }
+            
+            java.lang.reflect.Method method = object.getClass().getDeclaredMethod(methodName, argTypes);
+            method.setAccessible(true);
+            return method.invoke(object, args);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke private method", e);
         }
     }
 }

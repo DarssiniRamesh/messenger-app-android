@@ -194,7 +194,9 @@ public class TestUtils {
      * @param fieldName The name of the field
      * @return The value of the field
      * @throws Exception If the field cannot be accessed
+     * @deprecated Use dependency injection instead
      */
+    @Deprecated
     public static Object getPrivateField(Object object, String fieldName) throws Exception {
         Field field = object.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
@@ -208,11 +210,64 @@ public class TestUtils {
      * @param fieldName The name of the field
      * @param value The value to set
      * @throws Exception If the field cannot be accessed
+     * @deprecated Use dependency injection instead
      */
+    @Deprecated
     public static void setPrivateField(Object object, String fieldName, Object value) throws Exception {
         Field field = object.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(object, value);
+    }
+    
+    /**
+     * Sets the value of a private static field using reflection
+     *
+     * @param clazz The class containing the field
+     * @param fieldName The name of the field
+     * @param value The value to set
+     * @throws Exception If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    public static void setPrivateStaticField(Class<?> clazz, String fieldName, Object value) throws Exception {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        java.lang.reflect.Modifier.setModifiers(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+        field.set(null, value);
+    }
+    
+    /**
+     * Gets the value of a private static field using reflection
+     *
+     * @param clazz The class containing the field
+     * @param fieldName The name of the field
+     * @return The value of the field
+     * @throws Exception If the field cannot be accessed
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    public static Object getPrivateStaticField(Class<?> clazz, String fieldName) throws Exception {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(null);
+    }
+    
+    /**
+     * Invokes a private method using reflection
+     *
+     * @param object The object containing the method
+     * @param methodName The name of the method
+     * @param parameterTypes The parameter types of the method
+     * @param args The arguments to pass to the method
+     * @return The result of the method invocation
+     * @throws Exception If the method cannot be accessed or invoked
+     * @deprecated Use dependency injection instead
+     */
+    @Deprecated
+    public static Object invokePrivateMethod(Object object, String methodName, Class<?>[] parameterTypes, Object... args) throws Exception {
+        java.lang.reflect.Method method = object.getClass().getDeclaredMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        return method.invoke(object, args);
     }
 
     /**

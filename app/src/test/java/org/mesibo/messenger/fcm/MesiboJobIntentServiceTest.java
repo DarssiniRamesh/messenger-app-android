@@ -9,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mesibo.messenger.BaseUnitTest;
+import org.mesibo.messenger.DefaultTestDependencyProvider;
+import org.mesibo.messenger.TestDependencyProvider;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -35,6 +37,19 @@ import static org.mockito.Mockito.when;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28)
 public class MesiboJobIntentServiceTest extends BaseUnitTest {
+    
+    // Custom dependency provider for MesiboJobIntentServiceTest
+    private class JobIntentServiceTestDependencyProvider extends DefaultTestDependencyProvider {
+        @Override
+        public void sendMessageToGcmListener(boolean inService) {
+            // This will be mocked in the tests using MockedStatic
+        }
+    }
+    
+    @Override
+    protected TestDependencyProvider createDependencyProvider() {
+        return new JobIntentServiceTestDependencyProvider();
+    }
 
     @Mock
     private Context mockContext;
@@ -52,8 +67,8 @@ public class MesiboJobIntentServiceTest extends BaseUnitTest {
         super.setUp();
         service = spy(new MesiboJobIntentService());
         
-        // Mock handler to execute Runnables immediately
-        doReturn(mockHandler).when(service).getFieldValue("mHandler");
+        // Set the mock handler using setPrivateField
+        setPrivateField(service, "mHandler", mockHandler);
         when(mockHandler.post(any(Runnable.class))).thenAnswer(invocation -> {
             Runnable runnable = invocation.getArgument(0);
             runnable.run();
@@ -171,16 +186,6 @@ public class MesiboJobIntentServiceTest extends BaseUnitTest {
     private static abstract class TestableService extends MesiboJobIntentService {
         public void superOnDestroy() {
             super.onDestroy();
-        }
-        
-        public Object getFieldValue(String fieldName) {
-            try {
-                java.lang.reflect.Field field = MesiboJobIntentService.class.getDeclaredField(fieldName);
-                field.setAccessible(true);
-                return field.get(this);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to get field value", e);
-            }
         }
     }
 }
