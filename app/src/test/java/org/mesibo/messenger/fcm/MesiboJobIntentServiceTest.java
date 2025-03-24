@@ -2,6 +2,7 @@ package org.mesibo.messenger.fcm;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.widget.Toast;
 
@@ -10,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mesibo.messenger.BaseUnitTest;
 import org.mesibo.messenger.DefaultTestDependencyProvider;
+import org.mesibo.messenger.MainApplication;
 import org.mesibo.messenger.TestDependencyProvider;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -20,12 +22,17 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowToast;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -106,6 +113,48 @@ public class MesiboJobIntentServiceTest extends BaseUnitTest {
     }
 
     @Test
+    public void testEnqueueWork_withNullContext() {
+        // Arrange
+        try (MockedStatic<MesiboJobIntentService> mockedStatic = Mockito.mockStatic(MesiboJobIntentService.class)) {
+            // Allow the real enqueueWork method to be called
+            mockedStatic.when(() -> MesiboJobIntentService.enqueueWork(any(), any()))
+                    .thenCallRealMethod();
+            
+            // Act - This should not throw an exception
+            MesiboJobIntentService.enqueueWork(null, mockIntent);
+            
+            // Assert - No assertion needed, we're just verifying that the exception is caught
+            mockedStatic.verify(() -> androidx.core.app.JobIntentService.enqueueWork(
+                    any(Context.class), 
+                    any(Class.class), 
+                    anyInt(), 
+                    any(Intent.class)), 
+                    never());
+        }
+    }
+
+    @Test
+    public void testEnqueueWork_withNullIntent() {
+        // Arrange
+        try (MockedStatic<MesiboJobIntentService> mockedStatic = Mockito.mockStatic(MesiboJobIntentService.class)) {
+            // Allow the real enqueueWork method to be called
+            mockedStatic.when(() -> MesiboJobIntentService.enqueueWork(any(), any()))
+                    .thenCallRealMethod();
+            
+            // Act - This should not throw an exception
+            MesiboJobIntentService.enqueueWork(mockContext, null);
+            
+            // Assert - No assertion needed, we're just verifying that the exception is caught
+            mockedStatic.verify(() -> androidx.core.app.JobIntentService.enqueueWork(
+                    any(Context.class), 
+                    any(Class.class), 
+                    anyInt(), 
+                    any(Intent.class)), 
+                    never());
+        }
+    }
+
+    @Test
     public void testEnqueueWork_withException() {
         // Arrange
         try (MockedStatic<MesiboJobIntentService> mockedStatic = Mockito.mockStatic(MesiboJobIntentService.class)) {
@@ -134,6 +183,37 @@ public class MesiboJobIntentServiceTest extends BaseUnitTest {
         try (MockedStatic<MesiboRegistrationIntentService> mockedStatic = Mockito.mockStatic(MesiboRegistrationIntentService.class)) {
             // Act
             service.onHandleWork(mockIntent);
+            
+            // Assert
+            // Verify that sendMessageToListener was called with the right parameter
+            mockedStatic.verify(() -> MesiboRegistrationIntentService.sendMessageToListener(true));
+        }
+    }
+
+    @Test
+    public void testOnHandleWork_withNullIntent() {
+        // Arrange
+        try (MockedStatic<MesiboRegistrationIntentService> mockedStatic = Mockito.mockStatic(MesiboRegistrationIntentService.class)) {
+            // Act
+            service.onHandleWork(null);
+            
+            // Assert
+            // Verify that sendMessageToListener was still called
+            mockedStatic.verify(() -> MesiboRegistrationIntentService.sendMessageToListener(true));
+        }
+    }
+
+    @Test
+    public void testOnHandleWork_withIntentExtras() {
+        // Arrange
+        Intent intentWithExtras = new Intent();
+        Bundle extras = new Bundle();
+        extras.putString("test_key", "test_value");
+        intentWithExtras.putExtras(extras);
+        
+        try (MockedStatic<MesiboRegistrationIntentService> mockedStatic = Mockito.mockStatic(MesiboRegistrationIntentService.class)) {
+            // Act
+            service.onHandleWork(intentWithExtras);
             
             // Assert
             // Verify that sendMessageToListener was called with the right parameter
@@ -180,6 +260,73 @@ public class MesiboJobIntentServiceTest extends BaseUnitTest {
         // Assert
         // Verify that the toast was shown with the right message
         assertEquals(testMessage, ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void testToast_withEmptyMessage() {
+        // Arrange
+        String testMessage = "";
+        
+        // Act
+        service.toast(testMessage);
+        
+        // Assert
+        // Verify that the toast was shown with the empty message
+        assertEquals(testMessage, ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void testToast_withNullMessage() {
+        // Arrange
+        String testMessage = null;
+        
+        // Act
+        service.toast(testMessage);
+        
+        // Assert
+        // Verify that the toast was shown with null message
+        assertNull(ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test
+    public void testToast_handlerFailure() {
+        // Arrange
+        String testMessage = "Test toast message";
+        
+        // Mock handler to throw exception when post is called
+        when(mockHandler.post(any(Runnable.class))).thenThrow(new RuntimeException("Handler failure"));
+        
+        // Act - This should not throw an exception
+        try {
+            service.toast(testMessage);
+        } catch (Exception e) {
+            // If an exception is thrown, the test will fail
+            assertNull("Exception should not be thrown", e);
+        }
+        
+        // Assert - No assertion needed, we're just verifying that the exception is caught
+    }
+
+    @Test
+    public void testServiceLifecycle() {
+        // Arrange
+        try (MockedStatic<MesiboRegistrationIntentService> mockedStatic = Mockito.mockStatic(MesiboRegistrationIntentService.class);
+             MockedStatic<MainApplication> mockedAppStatic = Mockito.mockStatic(MainApplication.class)) {
+            
+            // Mock static methods
+            mockedAppStatic.when(MainApplication::getAppContext).thenReturn(mockContext);
+            
+            // Act - simulate service lifecycle
+            service.onHandleWork(mockIntent);
+            service.onDestroy();
+            
+            // Assert
+            // Verify that sendMessageToListener was called
+            mockedStatic.verify(() -> MesiboRegistrationIntentService.sendMessageToListener(true));
+            
+            // Verify that onDestroy was called
+            verify(service).superOnDestroy();
+        }
     }
 
     // Extension of MesiboJobIntentService for testing
